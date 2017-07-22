@@ -22,36 +22,44 @@ enum RequestType {
     case Destination
 }
 
-struct Request {
+class Object {
+    var id: String
+    
+    init() {
+        id = UUID().uuidString.lowercased()
+    }
+    
+    func short_id() -> String {
+        return id.substring(to: id.index(id.startIndex, offsetBy: 8))
+    }
+}
+
+class Request : Object {
     var direction: Direction = Direction.Idle
     var floor: Int = 1
     var type: RequestType
-    var id: String
     
     init(direction: Direction, floor: Int, type: RequestType) {
         self.direction = direction
         self.floor = floor
         self.type = type
-        id = UUID().uuidString.lowercased()
     }
     
     init(floor: Int) {
         self.direction = Direction.GoTo
         self.type = RequestType.Destination
         self.floor = floor
-        id = UUID().uuidString.lowercased()
     }
     
     func description() -> String {
-        return "<Request id: \(id) type: \(type), direction: \(direction), floor: \(floor)>"
+        return "<Request id: \(short_id()) type: \(type), direction: \(direction), floor: \(floor)>"
     }
 }
 
-class Elevator {
+class Elevator : Object {
     let velocity: Int = 1     // how many seconds to move 1 floor
     let maxWeight: Double
     let maxFloor: Int
-    var id: String
     var state: State = State.Idle
     var weight: Double = 0
     var floor: Int = 1
@@ -60,10 +68,10 @@ class Elevator {
     let dispatchQueue: DispatchQueue = DispatchQueue(label: "com.orens.elevator.elevator")
     
     init(maxWeight: Double, maxFloor: Int, control: Control) {
-        id = UUID().uuidString.lowercased()
         self.maxWeight = maxWeight
         self.maxFloor = maxFloor
         self.control = control
+        super.init()
         print(description())
     }
     
@@ -78,7 +86,7 @@ class Elevator {
     }
     
     func description() -> String {
-        return "<Elevator id: \(id), floor: \(floor), direction: \(direction), state: \(state), weight (max): \(weight) (\(maxWeight)), velocity: \(velocity)>"
+        return "<Elevator id: \(short_id()), floor: \(floor), direction: \(direction), state: \(state), weight (max): \(weight) (\(maxWeight)), velocity: \(velocity)>"
     }
     
     func makeIdle() {
@@ -98,11 +106,11 @@ class Elevator {
     }
     
     func open() {
-        print("elevator: \(id) opening doors at floor: \(floor)")
+        print("elevator: \(short_id()) opening doors at floor: \(floor)")
     }
     
     func close() {
-        print("elevator: \(id) closing doors at floor: \(floor)")
+        print("elevator: \(short_id()) closing doors at floor: \(floor)")
    }
     
     func arriveAtFloor() {
@@ -126,20 +134,15 @@ class Elevator {
                 floor -= 1
             }
             
-            print("elevator: \(id) moving to floor: \(floor) ...")
+            print("elevator: \(short_id()) moving to floor: \(floor) ...")
         }
     }
 };
 
-class Control {
-    var id: String
+class Control : Object {
     var elevators = [String: Elevator]()
     var requests = [Request]()
     let dispatchQueue: DispatchQueue = DispatchQueue(label: "com.orens.elevator.control")
-    
-    init() {
-        id = UUID().uuidString.lowercased()
-    }
     
     func attachElevator(elevator: Elevator) {
         elevators[elevator.id] = elevator
@@ -150,7 +153,7 @@ class Control {
     }
     
     func description() -> String {
-        return "<Control id: \(id) number_elevators: \(elevators.count)>"
+        return "<Control id: \(short_id()) number_elevators: \(elevators.count)>"
     }
     
     func callElevator(request: Request) {
@@ -226,13 +229,14 @@ class Control {
     }
 }
 
-class Building {
+class Building : Object {
     var floors: Int
     let control: Control = Control()
     var elevators = [Elevator]()
 
     init(floors: Int) {
         self.floors = floors
+        super.init()
         print(description())
         elevators.append(Elevator(maxWeight: 1200, maxFloor: self.floors, control: self.control))
         for elevator in elevators {
@@ -260,7 +264,7 @@ class Building {
     }
     
     func description() -> String {
-        return "<Building floors: \(floors)>"
+        return "<Building id: \(short_id()) floors: \(floors)>"
     }
 }
 
