@@ -161,46 +161,71 @@ class Control : Object {
         print("queue request for: \(request.description())")
     }
     
-    private func _internalCallBestElevator(direction: Direction, floor: Int) -> Elevator {
+    private func _internalRemoveRequestByID(id: String) {
+        if let i = requests.index(where: { ($0.id == id)}) {
+            let value = requests.remove(at: i)
+            print("clearing floor: \(floor) [\(i)] request: \(value.description())")
+        }
+    }
+    
+    private func _internalRemoveFirstRequest() {
+        _internalRemoveRequestByID(id: (requests.first?.id)!)
+    }
+    
+    private func _internalRemoveRequests(floor: Int) {
+        for request in requests {
+            if (request.floor == floor) {
+                _internalRemoveRequestByID(id: request.id)
+            }
+        }
+    }
+    
+    private func _internalCallBestElevator(direction: Direction, floor: Int) -> Elevator? {
         // TODO send it the first elevator for now
-        return (elevators.first?.value)!
+        return elevators.first?.value
     }
     
     private func _internalProcessRequest() {
         if (!requests.isEmpty) {
-            let next = requests.first
-            requests.removeFirst()
-            let elevator = _internalCallBestElevator(direction: (next?.direction)!, floor: (next?.floor)!)
+            guard let next = requests.first else {
+                return
+            }
+            
+            _internalRemoveFirstRequest()
+            guard let elevator = _internalCallBestElevator(direction: next.direction, floor: next.floor) else {
+                print("no elevator available, please attach one")
+                return
+            }
             elevator.makeActive()
             var direction = Direction.Up
-            if (elevator.floor > (next?.floor)!) {
+            if (elevator.floor > next.floor) {
                 direction = Direction.Down
             }
             
             var open = false
-            while (elevator.floor != next?.floor) {
+            while (elevator.floor != next.floor) {
                 // move the elevator
                 elevator.move(direction: direction)
 
                 // then determine if we should open for this floor
                 var remove = [Int]()
-                for (index, value) in requests.enumerated() {
-                    if (value.floor == elevator.floor && value.direction == direction) {
-                        remove.append(index)
+                for value in requests {
+                    if (value.floor == elevator.floor && (value.direction == Direction.GoTo || value.direction == direction)) {
+                        remove.append(value.floor)
                         open = true
                     }
                 }
                 
-                for r in remove {
-                    requests.remove(at: r)
-                }
-
-                if (elevator.floor == next?.floor) {
+                if (elevator.floor == next.floor) {
                     open = true
                 }
                 
                 if (open) {
                     elevator.arriveAtFloor()
+                    for r in remove {
+                        _internalRemoveRequests(floor: r)
+                    }
+                    
                     open = false
                 }
             }
