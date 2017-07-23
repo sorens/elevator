@@ -242,16 +242,8 @@ class Control : Object {
     func process() {
         PlaygroundPage.current.needsIndefiniteExecution = true
         dispatchQueue.async {
-            var process = true
-            while(process) {
+            while(true) {
                 self._internalProcessRequest()
-                
-                // TODO this is only so that the Playground doesn't run forever
-                if (self.requests.isEmpty) {
-                    print("elevator control done processing")
-                    process = false
-                    PlaygroundPage.current.finishExecution()
-                }
             }
         }
     }
