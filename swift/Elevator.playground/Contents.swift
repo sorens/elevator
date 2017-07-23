@@ -256,41 +256,38 @@ class Building : Object {
 
     init(floors: Int) {
         self.floors = floors
-        super.init()
-        print(description())
         elevators.append(Elevator(maxWeight: 1200, maxFloor: self.floors, control: self.control))
         for elevator in elevators {
             control.attachElevator(elevator: elevator)
         }
-        
-        print(control.description())
         control.process()
     }
     
     func run() {
-        simulateCallingElevator(delay: 3.0, floor: 3, direction: Direction.Up, destinationFloor: 4)
-        simulateCallingElevator(delay: 6.0, floor: 8, direction: Direction.Down, destinationFloor: 2)
-        simulateCallingElevator(delay: 9.0, floor: 1, direction: Direction.Up, destinationFloor: 9)
-        simulateCallingElevator(delay: 10.0, floor: 5, direction: Direction.Up, destinationFloor: 9)
-        simulateCallingElevator(delay: 12.0, floor: 5, direction: Direction.Down, destinationFloor: 1)
-        simulateCallingElevator(delay: 15.0, floor: 10, direction: Direction.Down, destinationFloor: 1)
-        simulateCallingElevator(delay: 18.0, floor: 3, direction: Direction.Down, destinationFloor: 1)
+        Building.SimulateCallingElevator(control: control, delay: 3.0, floor: 3, direction: Direction.Up, destinationFloor: 4)
+        Building.SimulateCallingElevator(control: control, delay: 6.0, floor: 8, direction: Direction.Down, destinationFloor: 2)
+        Building.SimulateCallingElevator(control: control, delay: 9.0, floor: 1, direction: Direction.Up, destinationFloor: 9)
+        Building.SimulateCallingElevator(control: control, delay: 10.0, floor: 5, direction: Direction.Up, destinationFloor: 9)
+        Building.SimulateCallingElevator(control: control, delay: 12.0, floor: 5, direction: Direction.Down, destinationFloor: 1)
+        Building.SimulateCallingElevator(control: control, delay: 15.0, floor: 10, direction: Direction.Down, destinationFloor: 1)
+        Building.SimulateCallingElevator(control: control, delay: 18.0, floor: 3, direction: Direction.Down, destinationFloor: 1)
     }
     
     func description() -> String {
         return "<Building id: \(short_id()) floors: \(floors)>"
     }
 
-    func simulateCallingElevator(delay: Double, floor: Int, direction: Direction, destinationFloor: Int) {
+    static func SimulateCallingElevator(control: Control, delay: Double, floor: Int, direction: Direction, destinationFloor: Int) {
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
             let request = Request(direction: direction, floor: floor, type: RequestType.Floor, block: {
-                [destinationFloor] () -> () in
-                self.control.callElevator(request: Request(floor: destinationFloor))
+                [control, destinationFloor] () -> () in
+                control.callElevator(request: Request(floor: destinationFloor))
             })
-            self.control.callElevator(request: request)
+            control.callElevator(request: request)
         }
     }
 }
 
 let building = Building(floors: 10)
 building.run()
+Building.SimulateCallingElevator(control: building.control, delay: 2.0, floor: 10, direction: Direction.Down, destinationFloor: 5)
