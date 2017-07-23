@@ -38,11 +38,13 @@ class Request : Object {
     var direction: Direction = Direction.Idle
     var floor: Int = 1
     var type: RequestType
+    var destinationAction: (() -> ())?
     
-    init(direction: Direction, floor: Int, type: RequestType) {
+    init(direction: Direction, floor: Int, type: RequestType, block: @escaping () -> ()) {
         self.direction = direction
         self.floor = floor
         self.type = type
+        self.destinationAction = block
     }
     
     init(floor: Int) {
@@ -113,9 +115,10 @@ class Elevator : Object {
         print("elevator: \(short_id()) closing doors at floor: \(floor)")
    }
     
-    func arriveAtFloor() {
+    func arriveAtFloor(request: Request) {
         open()
         sleep(2)
+        request.destinationAction?()
         close()
     }
     
@@ -221,7 +224,7 @@ class Control : Object {
                 }
                 
                 if (open) {
-                    elevator.arriveAtFloor()
+                    elevator.arriveAtFloor(request: next)
                     for r in remove {
                         _internalRemoveRequests(floor: r)
                     }
@@ -273,24 +276,29 @@ class Building : Object {
     }
     
     func run() {
-        control.callElevator(request: Request(direction: Direction.Up, floor: 3, type: RequestType.Floor))
-        control.callElevator(request: Request(floor: 4))
-        control.callElevator(request: Request(direction: Direction.Down, floor: 8, type: RequestType.Floor))
-        control.callElevator(request: Request(floor: 2))
-        control.callElevator(request: Request(direction: Direction.Up, floor: 1, type: RequestType.Floor))        
-        control.callElevator(request: Request(direction: Direction.Down, floor: 5, type: RequestType.Floor))
-        control.callElevator(request: Request(direction: Direction.Up, floor: 5, type: RequestType.Floor))
-        control.callElevator(request: Request(floor: 1))
-        control.callElevator(request: Request(floor: 9))
-        control.callElevator(request: Request(direction: Direction.Down, floor: 10, type: RequestType.Floor))
-        control.callElevator(request: Request(floor: 1))
-        sleep(20)
-        control.callElevator(request: Request(direction: Direction.Down, floor: 3, type: RequestType.Floor))
+        simulateCallingElevator(delay: 3.0, floor: 3, direction: Direction.Up, destinationFloor: 4)
+        simulateCallingElevator(delay: 6.0, floor: 8, direction: Direction.Down, destinationFloor: 2)
+        simulateCallingElevator(delay: 9.0, floor: 1, direction: Direction.Up, destinationFloor: 9)
+        simulateCallingElevator(delay: 10.0, floor: 5, direction: Direction.Up, destinationFloor: 9)
+        simulateCallingElevator(delay: 12.0, floor: 5, direction: Direction.Down, destinationFloor: 1)
+        simulateCallingElevator(delay: 15.0, floor: 10, direction: Direction.Down, destinationFloor: 1)
+        simulateCallingElevator(delay: 18.0, floor: 3, direction: Direction.Down, destinationFloor: 1)
     }
     
     func description() -> String {
         return "<Building id: \(short_id()) floors: \(floors)>"
     }
+
+    func simulateCallingElevator(delay: Double, floor: Int, direction: Direction, destinationFloor: Int) {
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
+            let request = Request(direction: direction, floor: floor, type: RequestType.Floor, block: {
+                [destinationFloor] () -> () in
+                self.control.callElevator(request: Request(floor: destinationFloor))
+            })
+            self.control.callElevator(request: request)
+        }
+    }
 }
 
-Building(floors: 10).run()
+let building = Building(floors: 10)
+building.run()
