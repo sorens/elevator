@@ -38,23 +38,25 @@ class Request : Object {
     var direction: Direction = Direction.Idle
     var floor: Int = 1
     var type: RequestType
-    var destinationAction: (() -> ())?
+    var destinationAction: ((_ original: Request) -> ())?
+    var original: Request?
     
-    init(direction: Direction, floor: Int, type: RequestType, block: @escaping () -> ()) {
+    init(direction: Direction, floor: Int, type: RequestType, block: @escaping (_ original: Request) -> ()) {
         self.direction = direction
         self.floor = floor
         self.type = type
         self.destinationAction = block
     }
     
-    init(floor: Int) {
+    init(floor: Int, original: Request?) {
         self.direction = Direction.GoTo
         self.type = RequestType.Destination
         self.floor = floor
+        self.original = original
     }
     
     func description() -> String {
-        return "<Request id: \(short_id()) type: \(type), direction: \(direction), floor: \(floor)>"
+        return "<Request id: \(short_id()) type: \(type), direction: \(direction), floor: \(floor), original: \(original?.short_id())>"
     }
 }
 
@@ -118,7 +120,7 @@ class Elevator : Object {
     func arriveAtFloor(request: Request) {
         open()
         sleep(2)
-        request.destinationAction?()
+        request.destinationAction?(request)
         close()
     }
     
@@ -171,13 +173,12 @@ class Control : Object {
         }
     }
     
-    private func _internalRemoveFirstRequest() {
-        _internalRemoveRequestByID(id: (requests.first?.id)!)
-    }
-    
-    private func _internalRemoveRequests(floor: Int) {
+    private func _internalRemoveRequestsByFloor(floor: Int, direction: Direction) {
+        if (floor == 0) {
+            return
+        }
         for request in requests {
-            if (request.floor == floor) {
+            if (request.floor == floor && request.direction == direction) {
                 _internalRemoveRequestByID(id: request.id)
             }
         }
@@ -194,7 +195,6 @@ class Control : Object {
                 return
             }
             
-            _internalRemoveFirstRequest()
             guard let elevator = _internalCallBestElevator(direction: next.direction, floor: next.floor) else {
                 print("no elevator available, please attach one")
                 return
@@ -211,24 +211,24 @@ class Control : Object {
                 elevator.move(direction: direction)
 
                 // then determine if we should open for this floor
-                var remove = [Int]()
                 for value in requests {
                     if (value.floor == elevator.floor && (value.direction == Direction.GoTo || value.direction == direction)) {
-                        remove.append(value.floor)
                         open = true
+                        break
                     }
                 }
                 
-                if (elevator.floor == next.floor) {
+                if (!open && elevator.floor == next.floor) {
+                    // we are at the requested floor
                     open = true
                 }
                 
                 if (open) {
                     elevator.arriveAtFloor(request: next)
-                    for r in remove {
-                        _internalRemoveRequests(floor: r)
+                    if (elevator.floor == next.floor) {
+                        _internalRemoveRequestByID(id: next.id)
                     }
-                    
+                    _internalRemoveRequestsByFloor(floor: elevator.floor, direction: direction)
                     open = false
                 }
             }
@@ -280,8 +280,8 @@ class Building : Object {
     static func SimulateCallingElevator(control: Control, delay: Double, floor: Int, direction: Direction, destinationFloor: Int) {
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
             let request = Request(direction: direction, floor: floor, type: RequestType.Floor, block: {
-                [control, destinationFloor] () -> () in
-                control.callElevator(request: Request(floor: destinationFloor))
+                [control, destinationFloor] (original: Request) -> () in
+                control.callElevator(request: Request(floor: destinationFloor, original: original))
             })
             control.callElevator(request: request)
         }
@@ -290,4 +290,4 @@ class Building : Object {
 
 let building = Building(floors: 10)
 building.run()
-Building.SimulateCallingElevator(control: building.control, delay: 2.0, floor: 10, direction: Direction.Down, destinationFloor: 5)
+Building.SimulateCallingElevator(control: building.control, delay: 22.0, floor: 10, direction: Direction.Down, destinationFloor: 5)
