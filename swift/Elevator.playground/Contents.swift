@@ -24,14 +24,25 @@ enum RequestType {
 
 class Object {
     var id: String
+    var name: String
     
-    init() {
+    init(name: String) {
         id = UUID().uuidString.lowercased()
+        self.name = name
+    }
+    
+    convenience init() {
+        self.init(name: "OBJ")
     }
     
     func short_id() -> String {
         return id.substring(to: id.index(id.startIndex, offsetBy: 8))
     }
+
+    func debug(message: String) {
+        print("\(self.name) {\(short_id())} | \(message)")
+    }
+    
 }
 
 class Request : Object {
@@ -46,6 +57,7 @@ class Request : Object {
         self.floor = floor
         self.type = type
         self.destinationAction = block
+        super.init(name: "RQS")
     }
     
     init(floor: Int, original: Request?) {
@@ -53,6 +65,7 @@ class Request : Object {
         self.type = RequestType.Destination
         self.floor = floor
         self.original = original
+        super.init(name: "RQS")
     }
     
     func description() -> String {
@@ -75,8 +88,7 @@ class Elevator : Object {
         self.maxWeight = maxWeight
         self.maxFloor = maxFloor
         self.control = control
-        super.init()
-        print(description())
+        super.init(name: "ELV")
     }
     
     func addWeight(weight: Double) -> Double {
@@ -110,11 +122,11 @@ class Elevator : Object {
     }
     
     func open() {
-        print("elevator: \(short_id()) opening doors at floor: \(floor)")
+        debug(message: "opening doors at floor: \(floor)...")
     }
     
     func close() {
-        print("elevator: \(short_id()) closing doors at floor: \(floor)")
+        debug(message: "closing doors at floor: \(floor)...")
    }
     
     func arriveAtFloor(request: Request) {
@@ -139,7 +151,7 @@ class Elevator : Object {
                 floor -= 1
             }
             
-            print("elevator: \(short_id()) moving to floor: \(floor) ...")
+            debug(message: "moving to floor: \(floor)...")
         }
     }
 };
@@ -148,6 +160,10 @@ class Control : Object {
     var elevators = [String: Elevator]()
     var requests = [Request]()
     let dispatchQueue: DispatchQueue = DispatchQueue(label: "com.orens.elevator.control")
+    
+    init() {
+        super.init(name: "CTL")
+    }
     
     func attachElevator(elevator: Elevator) {
         elevators[elevator.id] = elevator
@@ -163,13 +179,13 @@ class Control : Object {
     
     func callElevator(request: Request) {
         requests.append(request)
-        print("queue request for: \(request.description())")
+        debug(message: "control: queue request for \(request.description())")
     }
     
     private func _internalRemoveRequestByID(id: String) {
         if let i = requests.index(where: { ($0.id == id)}) {
             let value = requests.remove(at: i)
-            print("clearing floor: \(floor) [\(i)] request: \(value.description())")
+            debug(message: "clearing floor: \(floor) [\(i)] request: \(value.description())")
         }
     }
     
@@ -261,6 +277,7 @@ class Building : Object {
             control.attachElevator(elevator: elevator)
         }
         control.process()
+        super.init(name: "BLD")
     }
     
     func run() {
