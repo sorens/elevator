@@ -184,9 +184,9 @@ class Control : Object {
     }
     
     private func _internalRemoveRequestByID(id: String) {
-        if let i = requests.index(where: { ($0.id == id)}) {
-            let value = requests.remove(at: i)
-            debug(message: "clearing floor: \(floor) [\(i)] request: \(value.description())")
+        if let i = self.requests.index(where: { ($0.id == id)}) {
+            let value = self.requests.remove(at: i)
+            debug(message: "clearing request \(id): [\(i)] request: \(value.description())")
         }
     }
     
@@ -194,11 +194,17 @@ class Control : Object {
         if (floor == 0) {
             return
         }
-        for request in requests {
-            if (request.floor == floor && request.direction == direction) {
-                _internalRemoveRequestByID(id: request.id)
-            }
-        }
+        debug(message: "clearing requests for floor: \(floor), direction: \(direction)")
+        _internalRemoveGoToRequests(floor: floor)
+        _internalRemoveDirectionRequests(floor: floor, direction: direction)
+    }
+    
+    private func _internalRemoveGoToRequests(floor: Int) {
+        self.requests = self.requests.filter() { $0.floor != floor && $0.direction == Direction.GoTo}
+    }
+    
+    private func _internalRemoveDirectionRequests(floor: Int, direction: Direction) {
+        self.requests = self.requests.filter() { $0.floor != floor && $0.direction != direction}
     }
     
     private func _internalCallBestElevator(direction: Direction, floor: Int) -> Elevator? {
@@ -241,11 +247,24 @@ class Control : Object {
                 }
                 
                 if (open) {
+                    let originalDirection = elevator.direction
+                    // before the elevator "arrives", determine the next direction
+                    var newDirection = elevator.direction
+                    if (requests.count == 0) {
+                        newDirection = Direction.Idle
+                    }
+                    else if (requests.first?.direction != elevator.direction) {
+                        newDirection = (requests.first?.direction)!
+                    }
+                    elevator.direction = newDirection
                     elevator.arriveAtFloor(control: self)
                     if (elevator.floor == next.floor) {
                         _internalRemoveRequestByID(id: next.id)
                     }
-                    _internalRemoveRequestsByFloor(floor: elevator.floor, direction: direction)
+                    _internalRemoveRequestsByFloor(floor: elevator.floor, direction: originalDirection)
+                    if (elevator.floor == 1 || elevator.floor == elevator.maxFloor) {
+                        _internalRemoveRequestsByFloor(floor: elevator.floor, direction: newDirection)
+                    }
                     open = false
                 }
             }
