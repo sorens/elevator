@@ -202,6 +202,10 @@ class Control : Object {
         requests.append(request)
         debug(message: "queue request for \(request.description())")
     }
+    
+    func mockSendElevator(request: Request) {
+        debug(message: "simluate button push in elevator: \(request.description())")
+        callElevator(request: request)
     }
     
     private func _internalRemoveRequestByID(id: String) {
@@ -361,7 +365,7 @@ class Building : Object {
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + delay) {
             let request = Request(direction: direction, floor: floor, type: RequestType.Floor, block: {
                 [control, destinationFloor] (original: Request) -> () in
-                control.callElevator(request: Request(floor: destinationFloor, original: original))
+                control.mockSendElevator(request: Request(floor: destinationFloor, original: original))
             })
             control.callElevator(request: request)
         }
