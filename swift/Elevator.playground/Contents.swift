@@ -160,6 +160,7 @@ class Control : Object {
     var elevators = [String: Elevator]()
     var requests = [Request]()
     let dispatchQueue: DispatchQueue = DispatchQueue(label: "com.orens.elevator.control")
+    var processRequests = false
     
     init() {
         super.init(name: "CTL")
@@ -258,10 +259,21 @@ class Control : Object {
     func process() {
         PlaygroundPage.current.needsIndefiniteExecution = true
         dispatchQueue.async {
-            while(true) {
+            while(self.processRequests) {
                 self._internalProcessRequest()
             }
         }
+    }
+    
+    func stop() {
+        self.processRequests = false
+        debug(message: "stopping control: \(description())")
+    }
+    
+    func start() {
+        self.processRequests = true
+        debug(message: "starting control: \(description())")
+        self.process()
     }
 }
 
@@ -276,7 +288,6 @@ class Building : Object {
         for elevator in elevators {
             control.attachElevator(elevator: elevator)
         }
-        control.process()
         super.init(name: "BLD")
     }
     
@@ -288,6 +299,17 @@ class Building : Object {
         Building.SimulateCallingElevator(control: control, delay: 12.0, floor: 5, direction: Direction.Down, destinationFloor: 1)
         Building.SimulateCallingElevator(control: control, delay: 15.0, floor: 10, direction: Direction.Down, destinationFloor: 1)
         Building.SimulateCallingElevator(control: control, delay: 18.0, floor: 3, direction: Direction.Down, destinationFloor: 1)
+        Building.SimulateCallingElevator(control: control, delay: 22.0, floor: 10, direction: Direction.Down, destinationFloor: 5)
+    }
+    
+    func start() {
+        debug(message: "starting building: \(description())")
+        self.control.start()
+    }
+    
+    func stop() {
+        debug(message: "stopping building: \(description())")
+        self.control.stop()
     }
     
     func description() -> String {
@@ -306,5 +328,9 @@ class Building : Object {
 }
 
 let building = Building(floors: 10)
+building.start()
 building.run()
-Building.SimulateCallingElevator(control: building.control, delay: 22.0, floor: 10, direction: Direction.Down, destinationFloor: 5)
+
+DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 60.0) {
+    building.stop()
+}
