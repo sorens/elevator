@@ -176,7 +176,7 @@ class Control : Object {
     
     func requestsDescription() -> String {
         var message = "\(self.requests.count)"
-        if (self.requests.count > 0) {
+        if (requests.count > 0) {
             var append = false
             for request in self.requests {
                 if (append) {
@@ -209,8 +209,8 @@ class Control : Object {
     }
     
     private func _internalRemoveRequestByID(id: String) {
-        if let i = self.requests.index(where: { ($0.id == id)}) {
-            let value = self.requests.remove(at: i)
+        if let i = requests.index(where: { ($0.id == id)}) {
+            let value = requests.remove(at: i)
             debug(message: "clearing request \(id): [\(i)] request: \(value.description())")
         }
     }
@@ -225,11 +225,11 @@ class Control : Object {
     }
     
     private func _internalRemoveGoToRequests(floor: Int) {
-        self.requests = self.requests.filter() { $0.floor != floor && $0.direction == Direction.GoTo}
+        requests = requests.filter() { $0.floor != floor && $0.direction == Direction.GoTo}
     }
     
     private func _internalRemoveDirectionRequests(floor: Int, direction: Direction) {
-        self.requests = self.requests.filter() { $0.floor != floor && $0.direction != direction}
+        requests = requests.filter() { $0.floor != floor && $0.direction != direction}
     }
     
     private func _internalCallBestElevator(direction: Direction, floor: Int) -> Elevator? {
@@ -311,14 +311,14 @@ class Control : Object {
     }
     
     func stop() {
-        self.processRequests = false
+        processRequests = false
         debug(message: "stopping control: \(description())")
     }
     
     func start() {
-        self.processRequests = true
+        processRequests = true
         debug(message: "starting control: \(description())")
-        self.process()
+        process()
     }
 }
 
@@ -349,12 +349,12 @@ class Building : Object {
     
     func start() {
         debug(message: "starting building: \(description())")
-        self.control.start()
+        control.start()
     }
     
     func stop() {
         debug(message: "stopping building: \(description())")
-        self.control.stop()
+        control.stop()
     }
     
     func description() -> String {
