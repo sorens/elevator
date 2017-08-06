@@ -40,7 +40,8 @@ class Object {
     }
 
     func debug(message: String) {
-        print("\(self.name) {\(short_id())} | \(message)")
+        // TODO make the gap dynamic?
+        print("\(self.name) {\(short_id())}              | \(message)")
     }
     
 }
@@ -213,6 +214,22 @@ class Control : Object {
             let value = requests.remove(at: i)
             debug(message: "clearing request \(id): [\(i)] request: \(value.description())")
         }
+    }
+    
+    func debugPanel() -> String {
+        // TODO there should be a better way to do this instead of hard-coding
+        var tmp: [String] = ["-","-","-","-","-","-","-","-","-","-"]
+        tmp.reserveCapacity(10)
+        for request in requests {
+            if (request.floor > 0) {
+                tmp[request.floor-1] = "x"
+            }
+        }
+        return tmp.joined(separator: "")
+    }
+    
+    override func debug(message: String) {
+        print("\(self.name) {\(short_id())} [\(debugPanel())] | \(message)")
     }
     
     private func _internalRemoveRequestsByFloor(floor: Int, direction: Direction) {
