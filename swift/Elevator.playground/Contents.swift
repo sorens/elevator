@@ -81,13 +81,11 @@ class Elevator : Object {
     var weight: Double = 0
     var floor: Int = 1
     var direction: Direction = Direction.Idle
-    let control: Control
     let dispatchQueue: DispatchQueue = DispatchQueue(label: "com.orens.elevator.elevator")
     
-    init(maxWeight: Double, maxFloor: Int, control: Control) {
+    init(maxWeight: Double, maxFloor: Int) {
         self.maxWeight = maxWeight
         self.maxFloor = maxFloor
-        self.control = control
         super.init(name: "ELV")
     }
     
@@ -129,10 +127,12 @@ class Elevator : Object {
         debug(message: "closing doors at floor: \(floor)...")
    }
     
-    func arriveAtFloor(request: Request) {
+    func arriveAtFloor(control: Control) {
         open()
-        sleep(2)
-        request.destinationAction?(request)
+        
+        // open the doors at 2 times the velocity
+        sleep(UInt32(velocity)*2)
+        
         close()
     }
     
@@ -241,7 +241,7 @@ class Control : Object {
                 }
                 
                 if (open) {
-                    elevator.arriveAtFloor(request: next)
+                    elevator.arriveAtFloor(control: self)
                     if (elevator.floor == next.floor) {
                         _internalRemoveRequestByID(id: next.id)
                     }
@@ -284,7 +284,7 @@ class Building : Object {
 
     init(floors: Int) {
         self.floors = floors
-        elevators.append(Elevator(maxWeight: 1200, maxFloor: self.floors, control: self.control))
+        elevators.append(Elevator(maxWeight: 1200, maxFloor: self.floors))
         for elevator in elevators {
             control.attachElevator(elevator: elevator)
         }
