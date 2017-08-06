@@ -69,7 +69,7 @@ class Request : Object {
     }
     
     func description() -> String {
-        return "<Request id: \(short_id()) type: \(type), direction: \(direction), floor: \(floor), original: \(original?.short_id())>"
+        return "<Request id: \(short_id()) type: \(type), direction: \(direction), floor: \(floor), original: \(original?.description())>"
     }
 }
 
@@ -174,13 +174,34 @@ class Control : Object {
         elevators.removeValue(forKey: elevator.id)
     }
     
+    func requestsDescription() -> String {
+        var message = "\(self.requests.count)"
+        if (self.requests.count > 0) {
+            var append = false
+            for request in self.requests {
+                if (append) {
+                    message = message + ", "
+                }
+                else {
+                    message = message + " {"
+                    append = true
+                }
+                
+                message = message + request.short_id()
+            }
+            message = message + "}"
+        }
+        return message
+    }
+    
     func description() -> String {
-        return "<Control id: \(short_id()) number_elevators: \(elevators.count)>"
+        return "<Control id: \(short_id()) number_elevators: \(elevators.count) requests: \(requestsDescription())>"
     }
     
     func callElevator(request: Request) {
         requests.append(request)
-        debug(message: "control: queue request for \(request.description())")
+        debug(message: "queue request for \(request.description())")
+    }
     }
     
     private func _internalRemoveRequestByID(id: String) {
@@ -219,7 +240,7 @@ class Control : Object {
             }
             
             guard let elevator = _internalCallBestElevator(direction: next.direction, floor: next.floor) else {
-                print("no elevator available, please attach one")
+                debug(message: "no elevator available, please attach one")
                 return
             }
             elevator.makeActive()
