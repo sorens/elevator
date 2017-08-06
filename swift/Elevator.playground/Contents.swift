@@ -280,6 +280,7 @@ class Control : Object {
                     elevator.direction = newDirection
                     elevator.arriveAtFloor(control: self)
                     if (elevator.floor == next.floor) {
+                        next.destinationAction?(next)
                         _internalRemoveRequestByID(id: next.id)
                     }
                     _internalRemoveRequestsByFloor(floor: elevator.floor, direction: originalDirection)
